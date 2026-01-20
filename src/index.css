@@ -1,0 +1,329 @@
+@import "tailwindcss";
+
+@theme {
+  /* Green Bay Packers Green */
+  --color-primary-50: #e8f5e9;
+  --color-primary-100: #c8e6c9;
+  --color-primary-200: #a5d6a7;
+  --color-primary-300: #81c784;
+  --color-primary-400: #4caf50;
+  --color-primary-500: #203731;
+  --color-primary-600: #1b2f2a;
+  --color-primary-700: #162623;
+  --color-primary-800: #111e1b;
+  --color-primary-900: #0c1614;
+  --color-primary-950: #080f0d;
+
+  /* Packers Field Green (lighter for accents) */
+  --color-field-50: #e8f5e9;
+  --color-field-100: #c8e6c9;
+  --color-field-200: #a5d6a7;
+  --color-field-300: #81c784;
+  --color-field-400: #66bb6a;
+  --color-field-500: #2e7d32;
+  --color-field-600: #27692b;
+  --color-field-700: #1f5523;
+  --color-field-800: #18421c;
+  --color-field-900: #203731;
+  --color-field-950: #0a1f0c;
+
+  /* Green Bay Packers Gold */
+  --color-leather-50: #fffde7;
+  --color-leather-100: #fff9c4;
+  --color-leather-200: #fff59d;
+  --color-leather-300: #ffee58;
+  --color-leather-400: #ffca28;
+  --color-leather-500: #FFB612;
+  --color-leather-600: #e5a40f;
+  --color-leather-700: #c98f0c;
+  --color-leather-800: #a67609;
+  --color-leather-900: #7a5807;
+  --color-leather-950: #4d3604;
+
+  /* Urgency Colors */
+  --color-danger-500: #ef4444;
+  --color-danger-600: #dc2626;
+  --color-warning-500: #FFB612;
+  --color-warning-600: #e5a40f;
+
+  /* Packers accent colors */
+  --color-neon-blue: #203731;
+  --color-neon-cyan: #2e7d32;
+  --color-neon-orange: #FFB612;
+  --color-neon-green: #203731;
+
+  /* Dark theme background - Packers dark green tint */
+  --color-dark-bg: #070a09;
+  --color-dark-card: #0d1412;
+  --color-dark-border: #1e2b27;
+}
+
+/* Base styles */
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply bg-dark-bg text-gray-100 antialiased;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background:
+    radial-gradient(ellipse at top left, rgba(32, 55, 49, 0.3) 0%, transparent 50%),
+    radial-gradient(ellipse at bottom right, rgba(255, 182, 18, 0.15) 0%, transparent 50%),
+    radial-gradient(ellipse at center, rgba(46, 125, 50, 0.1) 0%, transparent 70%),
+    #070a09;
+  background-attachment: fixed;
+}
+
+/* Animated gradient background for special elements */
+@keyframes gradient-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.05); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes shine {
+  0% { left: -100%; }
+  100% { left: 200%; }
+}
+
+@keyframes border-dance {
+  0%, 100% { border-color: rgba(32, 55, 49, 0.7); }
+  25% { border-color: rgba(255, 182, 18, 0.7); }
+  50% { border-color: rgba(46, 125, 50, 0.7); }
+  75% { border-color: rgba(255, 202, 40, 0.7); }
+}
+
+@keyframes number-pop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+@keyframes ripple {
+  0% { transform: scale(0.8); opacity: 1; }
+  100% { transform: scale(2.4); opacity: 0; }
+}
+
+/* Gradient text - Packers Green & Gold */
+.gradient-text {
+  background: linear-gradient(135deg, #203731 0%, #2e7d32 40%, #FFB612 100%);
+  background-size: 200% 200%;
+  animation: gradient-shift 3s ease infinite;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Glowing card effect - Packers colors */
+.glow-card {
+  position: relative;
+  background: linear-gradient(135deg, rgba(13, 20, 18, 0.9), rgba(21, 30, 27, 0.9));
+  border: 1px solid rgba(32, 55, 49, 0.3);
+  transition: all 0.3s ease;
+}
+
+.glow-card::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, rgba(32, 55, 49, 0.5), rgba(46, 125, 50, 0.4), rgba(255, 182, 18, 0.4));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.glow-card:hover::before {
+  opacity: 1;
+}
+
+.glow-card:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 0 20px rgba(255, 182, 18, 0.2),
+    0 0 40px rgba(32, 55, 49, 0.2),
+    0 10px 40px rgba(0, 0, 0, 0.3);
+}
+
+/* Neon glow button */
+.neon-button {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.neon-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  animation: shine 2s infinite;
+}
+
+.neon-button:hover {
+  box-shadow:
+    0 0 10px currentColor,
+    0 0 20px currentColor,
+    0 0 30px currentColor;
+}
+
+/* Pulsing indicator */
+.pulse-indicator {
+  position: relative;
+}
+
+.pulse-indicator::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  animation: ripple 1.5s ease-out infinite;
+  border: 2px solid currentColor;
+}
+
+/* Stat number animation */
+.stat-number {
+  transition: all 0.3s ease;
+}
+
+.stat-number:hover {
+  animation: number-pop 0.3s ease;
+}
+
+/* Football field lines pattern */
+.field-pattern {
+  background-image:
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 49px,
+      rgba(255, 255, 255, 0.03) 49px,
+      rgba(255, 255, 255, 0.03) 50px
+    );
+}
+
+/* Custom scrollbar - Packers colors */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(13, 20, 18, 0.5);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #203731, #FFB612);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #2e7d32, #ffca28);
+}
+
+/* Focus visible for accessibility */
+*:focus-visible {
+  @apply outline-2 outline-offset-2 outline-primary-500;
+}
+
+/* Tooltip styles - Packers colors */
+.tooltip-container {
+  position: relative;
+}
+
+.tooltip {
+  position: absolute;
+  left: calc(100% + 12px);
+  top: 50%;
+  transform: translateY(-50%);
+  background: linear-gradient(135deg, rgba(13, 20, 18, 0.95), rgba(21, 30, 27, 0.95));
+  border: 1px solid rgba(255, 182, 18, 0.3);
+  border-radius: 12px;
+  padding: 12px 16px;
+  min-width: 180px;
+  box-shadow:
+    0 0 20px rgba(255, 182, 18, 0.2),
+    0 10px 40px rgba(0, 0, 0, 0.5);
+  z-index: 100;
+  pointer-events: none;
+  opacity: 0;
+  transition: all 0.2s ease;
+}
+
+.tooltip-container:hover .tooltip {
+  opacity: 1;
+  transform: translateY(-50%) translateX(0);
+}
+
+.tooltip::before {
+  content: '';
+  position: absolute;
+  left: -6px;
+  top: 50%;
+  transform: translateY(-50%) rotate(45deg);
+  width: 12px;
+  height: 12px;
+  background: rgba(13, 20, 18, 0.95);
+  border-left: 1px solid rgba(255, 182, 18, 0.3);
+  border-bottom: 1px solid rgba(255, 182, 18, 0.3);
+}
+
+/* Countdown urgency animations */
+.urgency-critical {
+  animation: border-dance 2s linear infinite;
+}
+
+.urgency-pulse {
+  animation: pulse-glow 1s ease-in-out infinite;
+}
+
+/* Floating animation for icons */
+.float-animation {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* Hide scrollbar but allow scroll */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Safe area padding for mobile PWA */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
