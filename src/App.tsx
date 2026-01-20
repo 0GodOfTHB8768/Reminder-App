@@ -7,11 +7,12 @@ import { Dashboard } from './components/dashboard';
 import { ReminderList, ReminderForm } from './components/reminders';
 import { CompletedList } from './components/completed';
 import { Calendar } from './components/calendar';
+import { BraceletScanner } from './components/scan';
 import { Modal, Celebration, IntroTour, useIntroTour } from './components/common';
 import { useNotifications } from './hooks/useNotifications';
 import type { Reminder, CompletionStatus } from './lib/types';
 
-type NavItem = 'dashboard' | 'playbook' | 'calendar' | 'touchdowns' | 'add';
+type NavItem = 'dashboard' | 'playbook' | 'calendar' | 'scan' | 'touchdowns' | 'add';
 
 function AppContent() {
   const [activeTab, setActiveTab] = useState<NavItem>('dashboard');
@@ -114,6 +115,15 @@ function AppContent() {
     setEditingReminder(null);
   };
 
+  const handleScanComplete = (data: Omit<Reminder, 'id' | 'createdAt' | 'isCompleted'>) => {
+    addReminder(data);
+    setActiveTab('dashboard');
+  };
+
+  const handleScanCancel = () => {
+    setActiveTab('dashboard');
+  };
+
   return (
     <Layout activeTab={activeTab} onTabChange={handleTabChange} onOpenTour={openTour}>
       <AnimatePresence mode="wait">
@@ -161,6 +171,21 @@ function AppContent() {
               onEditReminder={handleEditReminder}
               onAddReminder={handleAddReminder}
               onCompleteReminder={handleCompleteReminder}
+            />
+          </motion.div>
+        )}
+
+        {activeTab === 'scan' && (
+          <motion.div
+            key="scan"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 20 }}
+            transition={{ duration: 0.2 }}
+          >
+            <BraceletScanner
+              onCreateReminder={handleScanComplete}
+              onCancel={handleScanCancel}
             />
           </motion.div>
         )}

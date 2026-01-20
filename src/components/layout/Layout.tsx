@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { Header } from './Header';
 import { Navigation } from './Navigation';
 
-type NavItem = 'dashboard' | 'playbook' | 'calendar' | 'touchdowns' | 'add';
+type NavItem = 'dashboard' | 'playbook' | 'calendar' | 'scan' | 'touchdowns' | 'add';
 
 interface LayoutProps {
   children: ReactNode;
