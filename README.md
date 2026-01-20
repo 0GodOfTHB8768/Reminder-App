@@ -1,73 +1,103 @@
-# React + TypeScript + Vite
+# Game Day Tracker
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A football-themed deadline and reminder tracker app with Green Bay Packers styling. Turn your tasks into plays and score touchdowns by completing them on time!
 
-Currently, two official plugins are available:
+![Green Bay Packers Colors](https://img.shields.io/badge/theme-Packers-203731?style=flat&labelColor=FFB612)
+![React](https://img.shields.io/badge/React-19-61DAFB?logo=react)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?logo=typescript)
+![Vite](https://img.shields.io/badge/Vite-7-646CFF?logo=vite)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Features
 
-## React Compiler
+### Task Management
+- **Create Reminders** - Add tasks with deadlines, priorities, and categories
+- **Priority Levels** - Hail Mary (critical), Red Zone (high), First Down (normal), Practice (low)
+- **Categories** - Work, School, Personal, Health, Other
+- **Live Countdown** - Real-time countdown timers for each task
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### Calendar View
+- **Monthly Grid** - Navigate between months to see your schedule
+- **Visual Indicators** - Color-coded dots show task priorities at a glance
+- **Day Details** - Click any day to see and manage that day's tasks
+- **Quick Actions** - Complete or edit tasks directly from the calendar
 
-## Expanding the ESLint configuration
+### Scoring System
+- **Touchdown (7 pts)** - Complete a task before the deadline
+- **Field Goal (3 pts)** - Complete a task after the deadline
+- **Turnover (0 pts)** - Miss a deadline completely
+- **Win Streak** - Track consecutive on-time completions
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+### Additional Features
+- **Dashboard** - Overview of upcoming tasks and stats
+- **Scoreboard** - Track your touchdowns, field goals, and win rate
+- **Notifications** - Browser notifications for upcoming deadlines
+- **Dark Theme** - Easy on the eyes with Packers green and gold
+- **PWA Support** - Install as an app on your device
+- **Local Storage** - Your data stays on your device
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## Screenshots
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+The app features a dark theme with Green Bay Packers colors:
+- **Primary Green:** #203731
+- **Gold:** #FFB612
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## Getting Started
+
+### Prerequisites
+- Node.js 18+
+- npm or yarn
+
+### Installation
+
+```bash
+# Clone the repository
+git clone https://github.com/siddharthgumballi/Reminder-App.git
+cd Reminder-App
+
+# Install dependencies
+npm install
+
+# Start development server
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+The app will be available at `http://localhost:5173`
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+### Build for Production
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm run build
 ```
+
+The built files will be in the `dist` directory.
+
+## Tech Stack
+
+- **React 19** - UI framework
+- **TypeScript** - Type safety
+- **Vite** - Build tool and dev server
+- **Tailwind CSS 4** - Styling
+- **Framer Motion** - Animations
+- **date-fns** - Date manipulation
+- **PWA** - Progressive Web App support
+
+## Project Structure
+
+```
+src/
+├── components/
+│   ├── calendar/      # Calendar view components
+│   ├── common/        # Shared UI components (Button, Modal, etc.)
+│   ├── completed/     # Completed tasks view
+│   ├── dashboard/     # Dashboard and game day cards
+│   ├── layout/        # Header, Navigation, Layout
+│   └── reminders/     # Reminder form and list
+├── contexts/          # React Context for state management
+├── hooks/             # Custom hooks (countdown, notifications)
+├── lib/               # Types, constants, utilities
+└── App.tsx            # Main application component
+```
+
+## License
+
+MIT
