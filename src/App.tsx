@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { isBefore, parseISO } from 'date-fns';
+import { AuthProvider } from './contexts/AuthContext';
 import { ReminderProvider, useReminders } from './contexts/ReminderContext';
 import { Layout } from './components/layout';
 import { Dashboard } from './components/dashboard';
@@ -8,6 +9,7 @@ import { ReminderList, ReminderForm } from './components/reminders';
 import { CompletedList } from './components/completed';
 import { Calendar } from './components/calendar';
 import { BraceletScanner } from './components/scan';
+import { AuthModal } from './components/auth';
 import { Modal, Celebration, IntroTour, useIntroTour } from './components/common';
 import { useNotifications } from './hooks/useNotifications';
 import type { Reminder, CompletionStatus } from './lib/types';
@@ -22,6 +24,7 @@ function AppContent() {
     type: 'touchdown',
     visible: false
   });
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const { addReminder, updateReminder, completeReminder, reminders, getUpcomingReminders } = useReminders();
   const { isSupported, permission, requestPermission, sendNotification } = useNotifications();
   const { showTour, completeTour, openTour } = useIntroTour();
@@ -125,7 +128,7 @@ function AppContent() {
   };
 
   return (
-    <Layout activeTab={activeTab} onTabChange={handleTabChange} onOpenTour={openTour}>
+    <Layout activeTab={activeTab} onTabChange={handleTabChange} onOpenTour={openTour} onOpenAuth={() => setIsAuthModalOpen(true)}>
       <AnimatePresence mode="wait">
         {activeTab === 'dashboard' && (
           <motion.div
@@ -226,14 +229,21 @@ function AppContent() {
         isVisible={showTour}
         onComplete={completeTour}
       />
+
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+      />
     </Layout>
   );
 }
 
 export default function App() {
   return (
-    <ReminderProvider>
-      <AppContent />
-    </ReminderProvider>
+    <AuthProvider>
+      <ReminderProvider>
+        <AppContent />
+      </ReminderProvider>
+    </AuthProvider>
   );
 }

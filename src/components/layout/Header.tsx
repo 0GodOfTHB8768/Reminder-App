@@ -3,8 +3,13 @@ import { format } from 'date-fns';
 import { useState, useEffect } from 'react';
 import { USER_NAME, FOOTBALL_QUOTES } from '../../lib/constants';
 import { useReminders } from '../../contexts/ReminderContext';
+import { UserMenu } from '../auth';
 
-export function Header() {
+interface HeaderProps {
+  onOpenAuth?: () => void;
+}
+
+export function Header({ onOpenAuth }: HeaderProps) {
   const { getUpcomingReminders, stats } = useReminders();
   const upcomingCount = getUpcomingReminders().length;
   const currentHour = new Date().getHours();
@@ -32,6 +37,11 @@ export function Header() {
       <div className="absolute inset-0 opacity-30">
         <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-green-700/20 to-green-500/20 rounded-full blur-3xl" />
         <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-yellow-500/20 to-green-500/20 rounded-full blur-3xl" />
+      </div>
+
+      {/* User Menu - Top Right */}
+      <div className="relative flex justify-end mb-4">
+        <UserMenu onSignInClick={onOpenAuth || (() => {})} />
       </div>
 
       <div className="relative flex items-start justify-between gap-4">
