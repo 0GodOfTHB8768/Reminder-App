@@ -21,24 +21,59 @@ export function BraceletScanner({ onCreateReminder, onCancel }: BraceletScannerP
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const workerRef = useRef<Worker | null>(null);
 
+  // Resize image for faster OCR on mobile
+  const resizeImage = useCallback((dataUrl: string, maxWidth: number = 1200): Promise<string> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        // If image is already small enough, return as-is
+        if (img.width <= maxWidth) {
+          resolve(dataUrl);
+          return;
+        }
+
+        const canvas = document.createElement('canvas');
+        const ratio = maxWidth / img.width;
+        canvas.width = maxWidth;
+        canvas.height = img.height * ratio;
+
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          // Use better image smoothing for text
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'high';
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        }
+
+        resolve(canvas.toDataURL('image/jpeg', 0.9));
+      };
+      img.src = dataUrl;
+    });
+  }, []);
+
   const processImage = useCallback(async (imageDataUrl: string) => {
     setStep('processing');
     setProgress(0);
     setError(null);
 
     try {
+      // Resize image for faster processing on mobile
+      setProgress(5);
+      const resizedImage = await resizeImage(imageDataUrl);
+
       // Create OCR worker
       const worker = await createWorker('eng', 1, {
         logger: (m) => {
           if (m.status === 'recognizing text') {
-            setProgress(Math.round(m.progress * 100));
+            // Scale progress from 10-100 since we used 0-10 for resizing
+            setProgress(10 + Math.round(m.progress * 90));
           }
         },
       });
       workerRef.current = worker;
 
       // Perform OCR
-      const { data: { text } } = await worker.recognize(imageDataUrl);
+      const { data: { text } } = await worker.recognize(resizedImage);
 
       // Clean up worker
       await worker.terminate();
@@ -60,7 +95,7 @@ export function BraceletScanner({ onCreateReminder, onCancel }: BraceletScannerP
       setError('Failed to process image. Please try again.');
       setStep('capture');
     }
-  }, []);
+  }, [resizeImage]);
 
   const handleFileSelect = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
