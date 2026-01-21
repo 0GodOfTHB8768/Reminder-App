@@ -158,7 +158,10 @@ export function ReminderProvider({ children }: { children: ReactNode }) {
       // Add all local reminders to Firestore
       for (const reminder of localReminders) {
         const reminderRef = doc(db, COLLECTIONS.USERS, userId, COLLECTIONS.REMINDERS, reminder.id);
-        batch.set(reminderRef, reminder);
+        const sanitizedReminder = Object.fromEntries(
+          Object.entries(reminder).filter(([, value]) => value !== undefined)
+        );
+        batch.set(reminderRef, sanitizedReminder);
       }
 
       // Save stats
@@ -181,7 +184,11 @@ export function ReminderProvider({ children }: { children: ReactNode }) {
 
     try {
       const reminderRef = doc(db, COLLECTIONS.USERS, user.uid, COLLECTIONS.REMINDERS, reminder.id);
-      await setDoc(reminderRef, reminder);
+      // Remove undefined values - Firestore doesn't accept them
+      const sanitizedReminder = Object.fromEntries(
+        Object.entries(reminder).filter(([, value]) => value !== undefined)
+      );
+      await setDoc(reminderRef, sanitizedReminder);
     } catch (error) {
       console.error('Failed to save reminder to Firestore:', error);
     }

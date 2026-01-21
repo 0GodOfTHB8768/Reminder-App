@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { addHours, format } from 'date-fns';
+import { addHours, format, setHours, setMinutes } from 'date-fns';
 import type { Reminder, Priority, Category } from '../../lib/types';
 import { PRIORITY_CONFIG, CATEGORY_CONFIG } from '../../lib/types';
 
@@ -12,19 +12,172 @@ interface ScanPreviewProps {
   onCancel: () => void;
 }
 
-export function ScanPreview({ imageData, extractedText, onSave, onRetry, onCancel }: ScanPreviewProps) {
-  // Parse extracted text - first line as title, rest as description
-  const lines = extractedText.split('\n').filter(line => line.trim());
-  const defaultTitle = lines[0] || 'Scanned Reminder';
-  const defaultDescription = lines.slice(1).join('\n');
+// Parse extracted text to find dates, times, priority, and title
+function parseExtractedText(text: string) {
+  const lines = text.split('\n').filter(line => line.trim());
 
-  const [title, setTitle] = useState(defaultTitle);
-  const [description, setDescription] = useState(defaultDescription);
-  const [priority, setPriority] = useState<Priority>('first-down');
+  let parsedDate: Date | null = null;
+  let parsedTime: { hours: number; minutes: number } | null = null;
+  let parsedPriority: Priority = 'first-down';
+  let titleLine = '';
+  const descriptionLines: string[] = [];
+
+  // Priority patterns (case insensitive)
+  const priorityPatterns: { pattern: RegExp; priority: Priority }[] = [
+    { pattern: /hail\s*mary/i, priority: 'hail-mary' },
+    { pattern: /red\s*zone/i, priority: 'red-zone' },
+    { pattern: /first\s*down/i, priority: 'first-down' },
+    { pattern: /practice/i, priority: 'practice' },
+  ];
+
+  // Date patterns
+  const monthNames = '(?:january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)';
+  const datePatterns = [
+    // January 22nd 2026, January 22 2026, Jan 22nd 2026
+    new RegExp(`(${monthNames})\\s+(\\d{1,2})(?:st|nd|rd|th)?[,\\s]+(\\d{4})`, 'i'),
+    // 01/22/2026, 1/22/2026
+    /(\d{1,2})\/(\d{1,2})\/(\d{4})/,
+    // 2026-01-22
+    /(\d{4})-(\d{2})-(\d{2})/,
+  ];
+
+  // Time patterns
+  const timePatterns = [
+    // 7:30 PM, 7:30PM, 7:30 pm
+    /(\d{1,2}):(\d{2})\s*(am|pm)/i,
+    // 19:30
+    /(\d{1,2}):(\d{2})(?!\s*(?:am|pm))/i,
+  ];
+
+  const monthMap: Record<string, number> = {
+    'january': 0, 'jan': 0,
+    'february': 1, 'feb': 1,
+    'march': 2, 'mar': 2,
+    'april': 3, 'apr': 3,
+    'may': 4,
+    'june': 5, 'jun': 5,
+    'july': 6, 'jul': 6,
+    'august': 7, 'aug': 7,
+    'september': 8, 'sep': 8,
+    'october': 9, 'oct': 9,
+    'november': 10, 'nov': 10,
+    'december': 11, 'dec': 11,
+  };
+
+  for (const line of lines) {
+    const trimmedLine = line.trim();
+    let isSpecialLine = false;
+
+    // Check for priority
+    for (const { pattern, priority } of priorityPatterns) {
+      if (pattern.test(trimmedLine)) {
+        parsedPriority = priority;
+        isSpecialLine = true;
+        break;
+      }
+    }
+
+    // Check for date
+    if (!parsedDate) {
+      for (const pattern of datePatterns) {
+        const match = trimmedLine.match(pattern);
+        if (match) {
+          try {
+            if (pattern.source.includes(monthNames)) {
+              // Month name format
+              const monthStr = match[1].toLowerCase();
+              const day = parseInt(match[2]);
+              const year = parseInt(match[3]);
+              const month = monthMap[monthStr];
+              if (month !== undefined) {
+                parsedDate = new Date(year, month, day);
+                isSpecialLine = true;
+              }
+            } else if (pattern.source.startsWith('(\\d{4})')) {
+              // ISO format: YYYY-MM-DD
+              parsedDate = new Date(parseInt(match[1]), parseInt(match[2]) - 1, parseInt(match[3]));
+              isSpecialLine = true;
+            } else {
+              // MM/DD/YYYY format
+              parsedDate = new Date(parseInt(match[3]), parseInt(match[1]) - 1, parseInt(match[2]));
+              isSpecialLine = true;
+            }
+          } catch {
+            // Invalid date, continue
+          }
+          break;
+        }
+      }
+    }
+
+    // Check for time
+    if (!parsedTime) {
+      for (const pattern of timePatterns) {
+        const match = trimmedLine.match(pattern);
+        if (match) {
+          let hours = parseInt(match[1]);
+          const minutes = parseInt(match[2]);
+          const meridiem = match[3]?.toLowerCase();
+
+          if (meridiem) {
+            // 12-hour format
+            if (meridiem === 'pm' && hours !== 12) {
+              hours += 12;
+            } else if (meridiem === 'am' && hours === 12) {
+              hours = 0;
+            }
+          }
+
+          parsedTime = { hours, minutes };
+          isSpecialLine = true;
+          break;
+        }
+      }
+    }
+
+    // If not a special line, could be title or description
+    if (!isSpecialLine) {
+      if (!titleLine) {
+        titleLine = trimmedLine;
+      } else {
+        descriptionLines.push(trimmedLine);
+      }
+    }
+  }
+
+  // Build the deadline
+  let deadline: Date;
+  if (parsedDate) {
+    deadline = parsedDate;
+    if (parsedTime) {
+      deadline = setHours(setMinutes(deadline, parsedTime.minutes), parsedTime.hours);
+    } else {
+      // Default to end of day if no time specified
+      deadline = setHours(setMinutes(deadline, 0), 17);
+    }
+  } else {
+    // Default to tomorrow
+    deadline = addHours(new Date(), 24);
+    deadline.setMinutes(0);
+  }
+
+  return {
+    title: titleLine || 'Scanned Reminder',
+    description: descriptionLines.join('\n'),
+    priority: parsedPriority,
+    deadline: format(deadline, "yyyy-MM-dd'T'HH:mm"),
+  };
+}
+
+export function ScanPreview({ imageData, extractedText, onSave, onRetry, onCancel }: ScanPreviewProps) {
+  // Smart parse the extracted text
+  const parsed = useMemo(() => parseExtractedText(extractedText), [extractedText]);
+
+  const [title, setTitle] = useState(parsed.title);
+  const [description, setDescription] = useState(parsed.description);
+  const [priority, setPriority] = useState<Priority>(parsed.priority);
   const [category, setCategory] = useState<Category>('personal');
-  const [deadline, setDeadline] = useState(
-    format(addHours(new Date(), 24), "yyyy-MM-dd'T'HH:mm")
-  );
+  const [deadline, setDeadline] = useState(parsed.deadline);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

@@ -1,6 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { createWorker, type Worker } from 'tesseract.js';
 import { ScanPreview } from './ScanPreview';
 import type { Reminder } from '../../lib/types';
 
@@ -11,6 +10,8 @@ interface BraceletScannerProps {
 
 type ScanStep = 'capture' | 'processing' | 'preview';
 
+const VISION_API_KEY = import.meta.env.VITE_GOOGLE_CLOUD_VISION_API_KEY;
+
 export function BraceletScanner({ onCreateReminder, onCancel }: BraceletScannerProps) {
   const [step, setStep] = useState<ScanStep>('capture');
   const [imageData, setImageData] = useState<string | null>(null);
@@ -19,36 +20,52 @@ export function BraceletScanner({ onCreateReminder, onCancel }: BraceletScannerP
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
-  const workerRef = useRef<Worker | null>(null);
 
-  // Resize image for faster OCR on mobile
-  const resizeImage = useCallback((dataUrl: string, maxWidth: number = 1200): Promise<string> => {
-    return new Promise((resolve) => {
-      const img = new Image();
-      img.onload = () => {
-        // If image is already small enough, return as-is
-        if (img.width <= maxWidth) {
-          resolve(dataUrl);
-          return;
-        }
+  // Use Google Cloud Vision API for OCR
+  const processWithCloudVision = useCallback(async (base64Image: string): Promise<string> => {
+    // Remove the data URL prefix to get just the base64 data
+    const base64Data = base64Image.replace(/^data:image\/(png|jpeg|jpg);base64,/, '');
 
-        const canvas = document.createElement('canvas');
-        const ratio = maxWidth / img.width;
-        canvas.width = maxWidth;
-        canvas.height = img.height * ratio;
+    const response = await fetch(
+      `https://vision.googleapis.com/v1/images:annotate?key=${VISION_API_KEY}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          requests: [
+            {
+              image: {
+                content: base64Data,
+              },
+              features: [
+                {
+                  type: 'DOCUMENT_TEXT_DETECTION', // Better for handwriting
+                  maxResults: 1,
+                },
+              ],
+              imageContext: {
+                languageHints: ['en'],
+              },
+            },
+          ],
+        }),
+      }
+    );
 
-        const ctx = canvas.getContext('2d');
-        if (ctx) {
-          // Use better image smoothing for text
-          ctx.imageSmoothingEnabled = true;
-          ctx.imageSmoothingQuality = 'high';
-          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        }
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('Vision API error:', errorData);
+      throw new Error(errorData.error?.message || 'Failed to process image');
+    }
 
-        resolve(canvas.toDataURL('image/jpeg', 0.9));
-      };
-      img.src = dataUrl;
-    });
+    const data = await response.json();
+
+    // Extract the full text from the response
+    const fullText = data.responses?.[0]?.fullTextAnnotation?.text || '';
+
+    return fullText.trim();
   }, []);
 
   const processImage = useCallback(async (imageDataUrl: string) => {
@@ -57,45 +74,32 @@ export function BraceletScanner({ onCreateReminder, onCancel }: BraceletScannerP
     setError(null);
 
     try {
-      // Resize image for faster processing on mobile
-      setProgress(5);
-      const resizedImage = await resizeImage(imageDataUrl);
+      if (!VISION_API_KEY) {
+        throw new Error('Google Cloud Vision API key not configured');
+      }
 
-      // Create OCR worker
-      const worker = await createWorker('eng', 1, {
-        logger: (m) => {
-          if (m.status === 'recognizing text') {
-            // Scale progress from 10-100 since we used 0-10 for resizing
-            setProgress(10 + Math.round(m.progress * 90));
-          }
-        },
-      });
-      workerRef.current = worker;
+      setProgress(20);
 
-      // Perform OCR
-      const { data: { text } } = await worker.recognize(resizedImage);
+      // Call Google Cloud Vision API
+      const text = await processWithCloudVision(imageDataUrl);
 
-      // Clean up worker
-      await worker.terminate();
-      workerRef.current = null;
+      setProgress(90);
 
-      // Clean up the extracted text
-      const cleanedText = text.trim();
-
-      if (!cleanedText) {
+      if (!text) {
         setError('No text detected. Try taking a clearer photo with good lighting.');
         setStep('capture');
         return;
       }
 
-      setExtractedText(cleanedText);
+      setProgress(100);
+      setExtractedText(text);
       setStep('preview');
     } catch (err) {
       console.error('OCR Error:', err);
-      setError('Failed to process image. Please try again.');
+      setError(err instanceof Error ? err.message : 'Failed to process image. Please try again.');
       setStep('capture');
     }
-  }, [resizeImage]);
+  }, [processWithCloudVision]);
 
   const handleFileSelect = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -234,18 +238,18 @@ export function BraceletScanner({ onCreateReminder, onCancel }: BraceletScannerP
               <div className="relative grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 text-left">
                 <div className="bg-white/5 rounded-xl p-4 border border-white/10">
                   <div className="text-2xl mb-2">💡</div>
-                  <div className="text-sm text-gray-300 font-medium">Good Lighting</div>
-                  <div className="text-xs text-gray-500">Avoid shadows on the paper</div>
+                  <div className="text-sm text-gray-300 font-medium">Bright Light</div>
+                  <div className="text-xs text-gray-500">Natural daylight is best, no shadows</div>
                 </div>
                 <div className="bg-white/5 rounded-xl p-4 border border-white/10">
                   <div className="text-2xl mb-2">✍️</div>
-                  <div className="text-sm text-gray-300 font-medium">Clear Writing</div>
-                  <div className="text-xs text-gray-500">Print-style works best</div>
+                  <div className="text-sm text-gray-300 font-medium">PRINT Letters</div>
+                  <div className="text-xs text-gray-500">Use dark ink, write large & clear</div>
                 </div>
                 <div className="bg-white/5 rounded-xl p-4 border border-white/10">
                   <div className="text-2xl mb-2">📐</div>
-                  <div className="text-sm text-gray-300 font-medium">Flat & Straight</div>
-                  <div className="text-xs text-gray-500">Keep paper flat and level</div>
+                  <div className="text-sm text-gray-300 font-medium">Fill the Frame</div>
+                  <div className="text-xs text-gray-500">Get close, keep text in focus</div>
                 </div>
               </div>
 
@@ -329,7 +333,7 @@ export function BraceletScanner({ onCreateReminder, onCancel }: BraceletScannerP
                 Reading Your Notes
               </h3>
               <p className="text-gray-400 mb-6">
-                Using OCR to extract text from your image...
+                Using Google Cloud Vision to extract text...
               </p>
 
               {/* Progress bar */}

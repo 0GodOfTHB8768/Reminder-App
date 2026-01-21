@@ -1,5 +1,13 @@
 @import "tailwindcss";
 
+/* Theme CSS Variables - Set by JavaScript */
+:root {
+  --theme-primary: #183028;
+  --theme-secondary: #FFB81C;
+  --theme-primary-rgb: 24, 48, 40;
+  --theme-secondary-rgb: 255, 184, 28;
+}
+
 @theme {
   /* Green Bay Packers Green */
   --color-primary-50: #e8f5e9;
@@ -67,9 +75,9 @@ body {
   @apply bg-dark-bg text-gray-100 antialiased;
   font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background:
-    radial-gradient(ellipse at top left, rgba(32, 55, 49, 0.3) 0%, transparent 50%),
-    radial-gradient(ellipse at bottom right, rgba(255, 182, 18, 0.15) 0%, transparent 50%),
-    radial-gradient(ellipse at center, rgba(46, 125, 50, 0.1) 0%, transparent 70%),
+    radial-gradient(ellipse at top left, rgba(var(--theme-primary-rgb), 0.3) 0%, transparent 50%),
+    radial-gradient(ellipse at bottom right, rgba(var(--theme-secondary-rgb), 0.15) 0%, transparent 50%),
+    radial-gradient(ellipse at center, rgba(var(--theme-primary-rgb), 0.1) 0%, transparent 70%),
     #070a09;
   background-attachment: fixed;
 }
@@ -96,10 +104,10 @@ body {
 }
 
 @keyframes border-dance {
-  0%, 100% { border-color: rgba(32, 55, 49, 0.7); }
-  25% { border-color: rgba(255, 182, 18, 0.7); }
-  50% { border-color: rgba(46, 125, 50, 0.7); }
-  75% { border-color: rgba(255, 202, 40, 0.7); }
+  0%, 100% { border-color: rgba(var(--theme-primary-rgb), 0.7); }
+  25% { border-color: rgba(var(--theme-secondary-rgb), 0.7); }
+  50% { border-color: rgba(var(--theme-primary-rgb), 0.7); }
+  75% { border-color: rgba(var(--theme-secondary-rgb), 0.7); }
 }
 
 @keyframes number-pop {
@@ -113,9 +121,9 @@ body {
   100% { transform: scale(2.4); opacity: 0; }
 }
 
-/* Gradient text - Packers Green & Gold */
+/* Gradient text - Theme colors */
 .gradient-text {
-  background: linear-gradient(135deg, #203731 0%, #2e7d32 40%, #FFB612 100%);
+  background: linear-gradient(135deg, var(--theme-primary) 0%, var(--theme-primary) 40%, var(--theme-secondary) 100%);
   background-size: 200% 200%;
   animation: gradient-shift 3s ease infinite;
   -webkit-background-clip: text;
@@ -123,11 +131,11 @@ body {
   background-clip: text;
 }
 
-/* Glowing card effect - Packers colors */
+/* Glowing card effect - Theme colors */
 .glow-card {
   position: relative;
   background: linear-gradient(135deg, rgba(13, 20, 18, 0.9), rgba(21, 30, 27, 0.9));
-  border: 1px solid rgba(32, 55, 49, 0.3);
+  border: 1px solid rgba(var(--theme-primary-rgb), 0.3);
   transition: all 0.3s ease;
 }
 
@@ -137,7 +145,7 @@ body {
   inset: -1px;
   border-radius: inherit;
   padding: 1px;
-  background: linear-gradient(135deg, rgba(32, 55, 49, 0.5), rgba(46, 125, 50, 0.4), rgba(255, 182, 18, 0.4));
+  background: linear-gradient(135deg, rgba(var(--theme-primary-rgb), 0.5), rgba(var(--theme-primary-rgb), 0.4), rgba(var(--theme-secondary-rgb), 0.4));
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
@@ -153,8 +161,8 @@ body {
 .glow-card:hover {
   transform: translateY(-2px);
   box-shadow:
-    0 0 20px rgba(255, 182, 18, 0.2),
-    0 0 40px rgba(32, 55, 49, 0.2),
+    0 0 20px rgba(var(--theme-secondary-rgb), 0.2),
+    0 0 40px rgba(var(--theme-primary-rgb), 0.2),
     0 10px 40px rgba(0, 0, 0, 0.3);
 }
 
@@ -218,7 +226,7 @@ body {
     );
 }
 
-/* Custom scrollbar - Packers colors */
+/* Custom scrollbar - Theme colors */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -230,12 +238,13 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, #203731, #FFB612);
+  background: linear-gradient(180deg, var(--theme-primary), var(--theme-secondary));
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, #2e7d32, #ffca28);
+  background: linear-gradient(180deg, var(--theme-primary), var(--theme-secondary));
+  filter: brightness(1.2);
 }
 
 /* Focus visible for accessibility */
@@ -243,7 +252,7 @@ body {
   @apply outline-2 outline-offset-2 outline-primary-500;
 }
 
-/* Tooltip styles - Packers colors */
+/* Tooltip styles - Theme colors */
 .tooltip-container {
   position: relative;
 }
@@ -254,12 +263,12 @@ body {
   top: 50%;
   transform: translateY(-50%);
   background: linear-gradient(135deg, rgba(13, 20, 18, 0.95), rgba(21, 30, 27, 0.95));
-  border: 1px solid rgba(255, 182, 18, 0.3);
+  border: 1px solid rgba(var(--theme-secondary-rgb), 0.3);
   border-radius: 12px;
   padding: 12px 16px;
   min-width: 180px;
   box-shadow:
-    0 0 20px rgba(255, 182, 18, 0.2),
+    0 0 20px rgba(var(--theme-secondary-rgb), 0.2),
     0 10px 40px rgba(0, 0, 0, 0.5);
   z-index: 100;
   pointer-events: none;
@@ -281,8 +290,8 @@ body {
   width: 12px;
   height: 12px;
   background: rgba(13, 20, 18, 0.95);
-  border-left: 1px solid rgba(255, 182, 18, 0.3);
-  border-bottom: 1px solid rgba(255, 182, 18, 0.3);
+  border-left: 1px solid rgba(var(--theme-secondary-rgb), 0.3);
+  border-bottom: 1px solid rgba(var(--theme-secondary-rgb), 0.3);
 }
 
 /* Countdown urgency animations */

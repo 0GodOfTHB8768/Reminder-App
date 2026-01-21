@@ -1,5 +1,4 @@
-export const APP_NAME = "Gurshaan's Game Day Tracker";
-export const USER_NAME = 'Gurshaan';
+export const APP_NAME = "Game Day Tracker";
 
 export const NOTIFICATION_INTERVALS = [
   { value: 15, label: '15 minutes before' },

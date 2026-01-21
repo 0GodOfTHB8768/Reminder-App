@@ -9,28 +9,28 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
+      includeAssets: ['logo.png'],
       manifest: {
-        name: "Gurshaan's Game Day Tracker",
+        name: 'Game Day Tracker',
         short_name: 'Game Day',
         description: 'Track your deadlines like a pro quarterback',
-        theme_color: '#0f2ccf',
+        theme_color: '#203731',
         background_color: '#0a0f1a',
         display: 'standalone',
         orientation: 'portrait',
         icons: [
           {
-            src: 'pwa-192x192.png',
+            src: 'logo.png',
             sizes: '192x192',
             type: 'image/png'
           },
           {
-            src: 'pwa-512x512.png',
+            src: 'logo.png',
             sizes: '512x512',
             type: 'image/png'
           },
           {
-            src: 'pwa-512x512.png',
+            src: 'logo.png',
             sizes: '512x512',
             type: 'image/png',
             purpose: 'any maskable'
@@ -42,4 +42,17 @@ export default defineConfig({
       }
     })
   ],
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom'],
+          'vendor-firebase': ['firebase/app', 'firebase/auth', 'firebase/firestore'],
+          'vendor-motion': ['framer-motion'],
+          'vendor-date': ['date-fns'],
+          'vendor-ocr': ['tesseract.js'],
+        }
+      }
+    }
+  }
 })

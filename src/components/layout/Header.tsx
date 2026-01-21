@@ -1,16 +1,19 @@
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import { useState, useEffect } from 'react';
-import { USER_NAME, FOOTBALL_QUOTES } from '../../lib/constants';
+import { FOOTBALL_QUOTES } from '../../lib/constants';
 import { useReminders } from '../../contexts/ReminderContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { UserMenu } from '../auth';
 
 interface HeaderProps {
   onOpenAuth?: () => void;
+  onOpenSettings?: () => void;
 }
 
-export function Header({ onOpenAuth }: HeaderProps) {
+export function Header({ onOpenAuth, onOpenSettings }: HeaderProps) {
   const { getUpcomingReminders, stats } = useReminders();
+  const { playerName } = useAuth();
   const upcomingCount = getUpcomingReminders().length;
   const currentHour = new Date().getHours();
   const [quoteIndex, setQuoteIndex] = useState(0);
@@ -31,7 +34,7 @@ export function Header({ onOpenAuth }: HeaderProps) {
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
-      className="px-4 py-6 md:px-6 relative overflow-hidden"
+      className="px-4 py-3 sm:py-6 md:px-6 relative overflow-hidden"
     >
       {/* Subtle animated background */}
       <div className="absolute inset-0 opacity-30">
@@ -40,8 +43,8 @@ export function Header({ onOpenAuth }: HeaderProps) {
       </div>
 
       {/* User Menu - Top Right */}
-      <div className="relative flex justify-end mb-4">
-        <UserMenu onSignInClick={onOpenAuth || (() => {})} />
+      <div className="relative flex justify-end mb-2 sm:mb-4">
+        <UserMenu onSignInClick={onOpenAuth || (() => {})} onOpenSettings={onOpenSettings} />
       </div>
 
       <div className="relative flex items-start justify-between gap-4">
@@ -62,10 +65,10 @@ export function Header({ onOpenAuth }: HeaderProps) {
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.2 }}
-            className="text-2xl md:text-4xl font-bold mt-2"
+            className="text-xl sm:text-2xl md:text-4xl font-bold mt-1 sm:mt-2"
           >
             <span className="text-white">{greeting}, </span>
-            <span className="gradient-text">{USER_NAME}</span>
+            <span className="gradient-text">{playerName}</span>
             <motion.span
               className="inline-block ml-2"
               animate={{ rotate: [0, 14, -8, 14, -4, 10, 0] }}
@@ -75,14 +78,14 @@ export function Header({ onOpenAuth }: HeaderProps) {
             </motion.span>
           </motion.h1>
 
-          {/* Rotating motivational quote */}
+          {/* Rotating motivational quote - hidden on small mobile */}
           <motion.div
             key={quoteIndex}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.5 }}
-            className="mt-2 flex items-center gap-2"
+            className="mt-2 hidden sm:flex items-center gap-2"
           >
             <span className="text-lg">💬</span>
             <p className="text-transparent bg-clip-text bg-gradient-to-r from-green-400 via-yellow-400 to-green-400 text-sm md:text-base italic font-medium">
@@ -91,13 +94,13 @@ export function Header({ onOpenAuth }: HeaderProps) {
           </motion.div>
         </div>
 
-        {/* Stats card */}
+        {/* Stats card - hidden on mobile to save space */}
         <motion.div
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.3, type: "spring" }}
           whileHover={{ scale: 1.05 }}
-          className="flex-shrink-0"
+          className="flex-shrink-0 hidden sm:block"
         >
           <div className="relative group">
             {/* Glow effect */}

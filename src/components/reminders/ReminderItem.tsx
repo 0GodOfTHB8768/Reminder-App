@@ -1,4 +1,5 @@
-import { motion } from 'framer-motion';
+import { useState } from 'react';
+import { motion, useMotionValue, useTransform, type PanInfo } from 'framer-motion';
 import { format, parseISO } from 'date-fns';
 import { Badge } from '../common';
 import { useCountdown, getUrgencyColor } from '../../hooks/useCountdown';
@@ -16,14 +17,76 @@ export function ReminderItem({ reminder, onComplete, onEdit, onDelete }: Reminde
   const priorityConfig = PRIORITY_CONFIG[reminder.priority];
   const categoryConfig = CATEGORY_CONFIG[reminder.category];
 
+  // Swipe gesture state
+  const [isDragging, setIsDragging] = useState(false);
+  const x = useMotionValue(0);
+  const SWIPE_THRESHOLD = 80;
+
+  // Transform for background colors
+  const backgroundLeft = useTransform(
+    x,
+    [-SWIPE_THRESHOLD, 0],
+    ['rgba(239, 68, 68, 0.3)', 'rgba(239, 68, 68, 0)']
+  );
+  const backgroundRight = useTransform(
+    x,
+    [0, SWIPE_THRESHOLD],
+    ['rgba(34, 197, 94, 0)', 'rgba(34, 197, 94, 0.3)']
+  );
+
+  const leftIconOpacity = useTransform(x, [-SWIPE_THRESHOLD, -20], [1, 0]);
+  const rightIconOpacity = useTransform(x, [20, SWIPE_THRESHOLD], [0, 1]);
+
+  const handleDragEnd = (_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+    setIsDragging(false);
+    if (info.offset.x > SWIPE_THRESHOLD) {
+      onComplete();
+    } else if (info.offset.x < -SWIPE_THRESHOLD) {
+      onDelete();
+    }
+  };
+
   return (
     <motion.div
       layout
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, x: -100 }}
-      className="bg-dark-card border border-dark-border rounded-xl p-4 hover:border-gray-700 transition-colors group"
+      className="relative touch-pan-y"
     >
+      {/* Swipe backgrounds */}
+      <motion.div
+        className="absolute inset-0 rounded-xl flex items-center justify-start px-4 pointer-events-none"
+        style={{ background: backgroundLeft }}
+      >
+        <motion.div style={{ opacity: leftIconOpacity }} className="text-red-500">
+          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+          </svg>
+        </motion.div>
+      </motion.div>
+
+      <motion.div
+        className="absolute inset-0 rounded-xl flex items-center justify-end px-4 pointer-events-none"
+        style={{ background: backgroundRight }}
+      >
+        <motion.div style={{ opacity: rightIconOpacity }} className="text-green-500">
+          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+          </svg>
+        </motion.div>
+      </motion.div>
+
+      {/* Draggable card */}
+      <motion.div
+        style={{ x }}
+        drag="x"
+        dragConstraints={{ left: 0, right: 0 }}
+        dragElastic={0.6}
+        onDragStart={() => setIsDragging(true)}
+        onDragEnd={handleDragEnd}
+        className={`bg-dark-card border border-dark-border rounded-xl p-4 transition-colors group ${!isDragging ? 'hover:border-gray-700' : ''}`}
+      >
       <div className="flex items-start gap-3">
         {/* Complete checkbox */}
         <button
@@ -89,6 +152,7 @@ export function ReminderItem({ reminder, onComplete, onEdit, onDelete }: Reminde
           </button>
         </div>
       </div>
+      </motion.div>
     </motion.div>
   );
 }

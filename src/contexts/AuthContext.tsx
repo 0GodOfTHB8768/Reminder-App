@@ -12,12 +12,15 @@ import { auth, db, googleProvider, isFirebaseConfigured, COLLECTIONS } from '../
 
 interface AuthContextType {
   user: User | null;
+  playerName: string;
+  needsOnboarding: boolean;
   loading: boolean;
   isConfigured: boolean;
   signInWithGoogle: () => Promise<void>;
   signInWithEmail: (email: string, password: string) => Promise<void>;
   signUpWithEmail: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  updatePlayerName: (name: string) => Promise<void>;
   error: string | null;
   clearError: () => void;
 }
@@ -38,6 +41,8 @@ interface AuthProviderProps {
 
 export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
+  const [playerName, setPlayerName] = useState<string>('Player');
+  const [needsOnboarding, setNeedsOnboarding] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -55,20 +60,36 @@ export function AuthProvider({ children }: AuthProviderProps) {
         const userSnap = await getDoc(userRef);
 
         if (!userSnap.exists()) {
-          // New user - create document
+          // New user - create document and mark for onboarding
           await setDoc(userRef, {
             email: firebaseUser.email,
             displayName: firebaseUser.displayName,
             photoURL: firebaseUser.photoURL,
+            playerName: '', // Empty until they set it
             createdAt: serverTimestamp(),
             lastLoginAt: serverTimestamp(),
           });
+          setNeedsOnboarding(true);
+          setPlayerName('Player');
         } else {
-          // Existing user - update last login
+          // Existing user - check if they have a player name
+          const userData = userSnap.data();
+          if (userData.playerName) {
+            setPlayerName(userData.playerName);
+            setNeedsOnboarding(false);
+          } else {
+            setNeedsOnboarding(true);
+            setPlayerName('Player');
+          }
+          // Update last login
           await setDoc(userRef, {
             lastLoginAt: serverTimestamp(),
           }, { merge: true });
         }
+      } else {
+        // Not logged in
+        setPlayerName('Player');
+        setNeedsOnboarding(false);
       }
 
       setUser(firebaseUser);
@@ -77,6 +98,20 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     return () => unsubscribe();
   }, []);
+
+  const updatePlayerName = async (name: string) => {
+    if (!user || !db) return;
+
+    try {
+      const userRef = doc(db, COLLECTIONS.USERS, user.uid);
+      await setDoc(userRef, { playerName: name }, { merge: true });
+      setPlayerName(name);
+      setNeedsOnboarding(false);
+    } catch (err) {
+      console.error('Error updating player name:', err);
+      setError('Failed to save your name. Please try again.');
+    }
+  };
 
   const signInWithGoogle = async () => {
     if (!auth) {
@@ -157,12 +192,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
     <AuthContext.Provider
       value={{
         user,
+        playerName,
+        needsOnboarding,
         loading,
         isConfigured: isFirebaseConfigured,
         signInWithGoogle,
         signInWithEmail,
         signUpWithEmail,
         logout,
+        updatePlayerName,
         error,
         clearError,
       }}

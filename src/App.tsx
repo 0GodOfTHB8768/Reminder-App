@@ -1,18 +1,35 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { isBefore, parseISO } from 'date-fns';
-import { AuthProvider } from './contexts/AuthContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ReminderProvider, useReminders } from './contexts/ReminderContext';
+import { ThemeProvider } from './contexts/ThemeContext';
 import { Layout } from './components/layout';
 import { Dashboard } from './components/dashboard';
-import { ReminderList, ReminderForm } from './components/reminders';
-import { CompletedList } from './components/completed';
-import { Calendar } from './components/calendar';
-import { BraceletScanner } from './components/scan';
-import { AuthModal } from './components/auth';
-import { Modal, Celebration, IntroTour, useIntroTour } from './components/common';
+import { ReminderForm } from './components/reminders';
+import { Modal, useIntroTour } from './components/common';
 import { useNotifications } from './hooks/useNotifications';
 import type { Reminder, CompletionStatus } from './lib/types';
+
+// Lazy load heavy components
+const ReminderList = lazy(() => import('./components/reminders').then(m => ({ default: m.ReminderList })));
+const CompletedList = lazy(() => import('./components/completed').then(m => ({ default: m.CompletedList })));
+const Calendar = lazy(() => import('./components/calendar').then(m => ({ default: m.Calendar })));
+const BraceletScanner = lazy(() => import('./components/scan').then(m => ({ default: m.BraceletScanner })));
+const AuthModal = lazy(() => import('./components/auth').then(m => ({ default: m.AuthModal })));
+const OnboardingModal = lazy(() => import('./components/auth').then(m => ({ default: m.OnboardingModal })));
+const SettingsModal = lazy(() => import('./components/auth').then(m => ({ default: m.SettingsModal })));
+const Celebration = lazy(() => import('./components/common').then(m => ({ default: m.Celebration })));
+const IntroTour = lazy(() => import('./components/common').then(m => ({ default: m.IntroTour })));
+
+// Loading fallback
+function LoadingSpinner() {
+  return (
+    <div className="flex items-center justify-center py-12">
+      <div className="w-8 h-8 border-2 border-green-500/30 border-t-green-500 rounded-full animate-spin" />
+    </div>
+  );
+}
 
 type NavItem = 'dashboard' | 'playbook' | 'calendar' | 'scan' | 'touchdowns' | 'add';
 
@@ -25,9 +42,11 @@ function AppContent() {
     visible: false
   });
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const { addReminder, updateReminder, completeReminder, reminders, getUpcomingReminders } = useReminders();
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+  const { addReminder, updateReminder, deleteReminder, completeReminder, reminders, getUpcomingReminders } = useReminders();
   const { isSupported, permission, requestPermission, sendNotification } = useNotifications();
   const { showTour, completeTour, openTour } = useIntroTour();
+  const { needsOnboarding, user } = useAuth();
 
   // Request notification permission on first visit
   useEffect(() => {
@@ -128,83 +147,86 @@ function AppContent() {
   };
 
   return (
-    <Layout activeTab={activeTab} onTabChange={handleTabChange} onOpenTour={openTour} onOpenAuth={() => setIsAuthModalOpen(true)}>
-      <AnimatePresence mode="wait">
-        {activeTab === 'dashboard' && (
-          <motion.div
-            key="dashboard"
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 20 }}
-            transition={{ duration: 0.2 }}
-          >
-            <Dashboard
-              onEditReminder={handleEditReminder}
-              onAddReminder={handleAddReminder}
-              onCompleteReminder={handleCompleteReminder}
-            />
-          </motion.div>
-        )}
+    <Layout activeTab={activeTab} onTabChange={handleTabChange} onOpenTour={openTour} onOpenAuth={() => setIsAuthModalOpen(true)} onOpenSettings={() => setIsSettingsModalOpen(true)}>
+      <Suspense fallback={<LoadingSpinner />}>
+        <AnimatePresence mode="wait">
+          {activeTab === 'dashboard' && (
+            <motion.div
+              key="dashboard"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+            >
+              <Dashboard
+                onEditReminder={handleEditReminder}
+                onAddReminder={handleAddReminder}
+                onCompleteReminder={handleCompleteReminder}
+                onDeleteReminder={deleteReminder}
+              />
+            </motion.div>
+          )}
 
-        {activeTab === 'playbook' && (
-          <motion.div
-            key="playbook"
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 20 }}
-            transition={{ duration: 0.2 }}
-          >
-            <ReminderList
-              onEditReminder={handleEditReminder}
-              onAddReminder={handleAddReminder}
-              onCompleteReminder={handleCompleteReminder}
-            />
-          </motion.div>
-        )}
+          {activeTab === 'playbook' && (
+            <motion.div
+              key="playbook"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+            >
+              <ReminderList
+                onEditReminder={handleEditReminder}
+                onAddReminder={handleAddReminder}
+                onCompleteReminder={handleCompleteReminder}
+              />
+            </motion.div>
+          )}
 
-        {activeTab === 'calendar' && (
-          <motion.div
-            key="calendar"
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 20 }}
-            transition={{ duration: 0.2 }}
-          >
-            <Calendar
-              onEditReminder={handleEditReminder}
-              onAddReminder={handleAddReminder}
-              onCompleteReminder={handleCompleteReminder}
-            />
-          </motion.div>
-        )}
+          {activeTab === 'calendar' && (
+            <motion.div
+              key="calendar"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+            >
+              <Calendar
+                onEditReminder={handleEditReminder}
+                onAddReminder={handleAddReminder}
+                onCompleteReminder={handleCompleteReminder}
+              />
+            </motion.div>
+          )}
 
-        {activeTab === 'scan' && (
-          <motion.div
-            key="scan"
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 20 }}
-            transition={{ duration: 0.2 }}
-          >
-            <BraceletScanner
-              onCreateReminder={handleScanComplete}
-              onCancel={handleScanCancel}
-            />
-          </motion.div>
-        )}
+          {activeTab === 'scan' && (
+            <motion.div
+              key="scan"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+            >
+              <BraceletScanner
+                onCreateReminder={handleScanComplete}
+                onCancel={handleScanCancel}
+              />
+            </motion.div>
+          )}
 
-        {activeTab === 'touchdowns' && (
-          <motion.div
-            key="touchdowns"
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 20 }}
-            transition={{ duration: 0.2 }}
-          >
-            <CompletedList />
-          </motion.div>
-        )}
-      </AnimatePresence>
+          {activeTab === 'touchdowns' && (
+            <motion.div
+              key="touchdowns"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+            >
+              <CompletedList />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </Suspense>
 
       <Modal
         isOpen={isModalOpen}
@@ -219,21 +241,40 @@ function AppContent() {
         />
       </Modal>
 
-      <Celebration
-        type={celebration.type}
-        isVisible={celebration.visible}
-        onComplete={() => setCelebration(c => ({ ...c, visible: false }))}
-      />
+      <Suspense fallback={null}>
+        {celebration.visible && (
+          <Celebration
+            type={celebration.type}
+            isVisible={celebration.visible}
+            onComplete={() => setCelebration(c => ({ ...c, visible: false }))}
+          />
+        )}
 
-      <IntroTour
-        isVisible={showTour}
-        onComplete={completeTour}
-      />
+        {showTour && (
+          <IntroTour
+            isVisible={showTour}
+            onComplete={completeTour}
+          />
+        )}
 
-      <AuthModal
-        isOpen={isAuthModalOpen}
-        onClose={() => setIsAuthModalOpen(false)}
-      />
+        {isAuthModalOpen && (
+          <AuthModal
+            isOpen={isAuthModalOpen}
+            onClose={() => setIsAuthModalOpen(false)}
+          />
+        )}
+
+        {needsOnboarding && user && (
+          <OnboardingModal isOpen={needsOnboarding && !!user} />
+        )}
+
+        {isSettingsModalOpen && (
+          <SettingsModal
+            isOpen={isSettingsModalOpen}
+            onClose={() => setIsSettingsModalOpen(false)}
+          />
+        )}
+      </Suspense>
     </Layout>
   );
 }
@@ -241,9 +282,11 @@ function AppContent() {
 export default function App() {
   return (
     <AuthProvider>
-      <ReminderProvider>
-        <AppContent />
-      </ReminderProvider>
+      <ThemeProvider>
+        <ReminderProvider>
+          <AppContent />
+        </ReminderProvider>
+      </ThemeProvider>
     </AuthProvider>
   );
 }

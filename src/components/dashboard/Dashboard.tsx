@@ -8,14 +8,15 @@ interface DashboardProps {
   onEditReminder: (reminder: Reminder) => void;
   onAddReminder: () => void;
   onCompleteReminder: (id: string) => void;
+  onDeleteReminder: (id: string) => void;
 }
 
-export function Dashboard({ onEditReminder, onAddReminder, onCompleteReminder }: DashboardProps) {
+export function Dashboard({ onEditReminder, onAddReminder, onCompleteReminder, onDeleteReminder }: DashboardProps) {
   const { getUpcomingReminders } = useReminders();
   const upcomingReminders = getUpcomingReminders();
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <Scoreboard />
 
       <section>
@@ -57,6 +58,7 @@ export function Dashboard({ onEditReminder, onAddReminder, onCompleteReminder }:
                   index={index}
                   onComplete={() => onCompleteReminder(reminder.id)}
                   onEdit={() => onEditReminder(reminder)}
+                  onDelete={() => onDeleteReminder(reminder.id)}
                 />
               ))}
             </AnimatePresence>

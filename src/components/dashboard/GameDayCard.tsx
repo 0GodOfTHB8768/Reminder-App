@@ -1,4 +1,5 @@
-import { motion } from 'framer-motion';
+import { useState } from 'react';
+import { motion, useMotionValue, useTransform, type PanInfo } from 'framer-motion';
 import { format, parseISO } from 'date-fns';
 import { useCountdown, type UrgencyLevel } from '../../hooks/useCountdown';
 import { PRIORITY_CONFIG, CATEGORY_CONFIG, type Reminder } from '../../lib/types';
@@ -7,6 +8,7 @@ interface GameDayCardProps {
   reminder: Reminder;
   onComplete: () => void;
   onEdit: () => void;
+  onDelete: () => void;
   index: number;
 }
 
@@ -108,11 +110,48 @@ function CountdownDisplay({ countdown }: { countdown: ReturnType<typeof useCount
   );
 }
 
-export function GameDayCard({ reminder, onComplete, onEdit, index }: GameDayCardProps) {
+export function GameDayCard({ reminder, onComplete, onEdit, onDelete, index }: GameDayCardProps) {
   const countdown = useCountdown(reminder.deadline);
   const priorityConfig = PRIORITY_CONFIG[reminder.priority];
   const categoryConfig = CATEGORY_CONFIG[reminder.category];
   const urgencyStyles = urgencyGradients[countdown.urgencyLevel];
+
+  // Swipe gesture state
+  const [isDragging, setIsDragging] = useState(false);
+  const x = useMotionValue(0);
+  const SWIPE_THRESHOLD = 100;
+
+  // Transform for background colors based on swipe direction
+  const backgroundLeft = useTransform(
+    x,
+    [-SWIPE_THRESHOLD, 0],
+    ['rgba(239, 68, 68, 0.3)', 'rgba(239, 68, 68, 0)']
+  );
+  const backgroundRight = useTransform(
+    x,
+    [0, SWIPE_THRESHOLD],
+    ['rgba(34, 197, 94, 0)', 'rgba(34, 197, 94, 0.3)']
+  );
+
+  // Icon opacity based on swipe distance
+  const leftIconOpacity = useTransform(x, [-SWIPE_THRESHOLD, -30], [1, 0]);
+  const rightIconOpacity = useTransform(x, [30, SWIPE_THRESHOLD], [0, 1]);
+
+  // Scale for icons
+  const leftIconScale = useTransform(x, [-SWIPE_THRESHOLD, -50], [1.2, 0.8]);
+  const rightIconScale = useTransform(x, [50, SWIPE_THRESHOLD], [0.8, 1.2]);
+
+  const handleDragEnd = (_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+    setIsDragging(false);
+
+    if (info.offset.x > SWIPE_THRESHOLD) {
+      // Swiped right - complete
+      onComplete();
+    } else if (info.offset.x < -SWIPE_THRESHOLD) {
+      // Swiped left - delete
+      onDelete();
+    }
+  };
 
   return (
     <motion.div
@@ -120,9 +159,50 @@ export function GameDayCard({ reminder, onComplete, onEdit, index }: GameDayCard
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, x: -100, scale: 0.9 }}
       transition={{ duration: 0.4, delay: index * 0.1, type: "spring" }}
-      whileHover={{ y: -4, scale: 1.01 }}
-      className="relative group"
+      className="relative group touch-pan-y"
     >
+      {/* Swipe action backgrounds */}
+      <motion.div
+        className="absolute inset-0 rounded-2xl flex items-center justify-start px-6 pointer-events-none"
+        style={{ background: backgroundLeft }}
+      >
+        <motion.div
+          style={{ opacity: leftIconOpacity, scale: leftIconScale }}
+          className="flex items-center gap-2 text-red-500"
+        >
+          <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+          </svg>
+          <span className="font-bold text-sm hidden sm:block">Delete</span>
+        </motion.div>
+      </motion.div>
+
+      <motion.div
+        className="absolute inset-0 rounded-2xl flex items-center justify-end px-6 pointer-events-none"
+        style={{ background: backgroundRight }}
+      >
+        <motion.div
+          style={{ opacity: rightIconOpacity, scale: rightIconScale }}
+          className="flex items-center gap-2 text-green-500"
+        >
+          <span className="font-bold text-sm hidden sm:block">Complete</span>
+          <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+          </svg>
+        </motion.div>
+      </motion.div>
+
+      {/* Draggable card */}
+      <motion.div
+        style={{ x }}
+        drag="x"
+        dragConstraints={{ left: 0, right: 0 }}
+        dragElastic={0.7}
+        onDragStart={() => setIsDragging(true)}
+        onDragEnd={handleDragEnd}
+        whileHover={!isDragging ? { y: -4, scale: 1.01 } : {}}
+        className="relative"
+      >
       {/* Glow effect */}
       <div
         className="absolute inset-0 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"
@@ -248,6 +328,23 @@ export function GameDayCard({ reminder, onComplete, onEdit, index }: GameDayCard
           </div>
         </div>
       </div>
+      </motion.div>
+
+      {/* Swipe hint for mobile - shows on first card only */}
+      {index === 0 && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1, duration: 0.5 }}
+          className="mt-2 text-center text-xs text-gray-500 md:hidden"
+        >
+          <span className="flex items-center justify-center gap-1">
+            <span>←</span>
+            <span>Swipe to complete or delete</span>
+            <span>→</span>
+          </span>
+        </motion.div>
+      )}
     </motion.div>
   );
 }
