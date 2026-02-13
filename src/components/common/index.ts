@@ -3,4 +3,5 @@ export { Card } from './Card';
 export { Modal } from './Modal';
 export { Badge } from './Badge';
 export { Celebration } from './Celebration';
-export { IntroTour, useIntroTour } from './IntroTour';
+export { IntroTour } from './IntroTour';
+export { useIntroTour } from './useIntroTour';

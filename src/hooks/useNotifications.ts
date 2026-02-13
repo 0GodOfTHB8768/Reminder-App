@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { getNotificationPermission, setNotificationPermission } from '../lib/storage';
 
 interface UseNotificationsResult {
@@ -13,20 +13,14 @@ export function useNotifications(): UseNotificationsResult {
     if (typeof window === 'undefined' || !('Notification' in window)) {
       return 'unsupported';
     }
+    const stored = getNotificationPermission();
+    if (stored && Notification.permission === 'granted') {
+      return 'granted';
+    }
     return Notification.permission;
   });
 
   const isSupported = permission !== 'unsupported';
-
-  useEffect(() => {
-    if (!isSupported) return;
-
-    // Sync with stored preference
-    const stored = getNotificationPermission();
-    if (stored && Notification.permission === 'granted') {
-      setPermission('granted');
-    }
-  }, [isSupported]);
 
   const requestPermission = useCallback(async (): Promise<boolean> => {
     if (!isSupported) return false;

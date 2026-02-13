@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createPortal } from 'react-dom';
 
@@ -23,6 +23,7 @@ interface Confetti {
   color: string;
   delay: number;
   duration: number;
+  rotation: number;
 }
 
 const celebrationConfig = {
@@ -53,46 +54,42 @@ export function Celebration({ type, isVisible, onComplete }: CelebrationProps) {
   const [confetti, setConfetti] = useState<Confetti[]>([]);
   const config = celebrationConfig[type];
 
-  // Generate particles and confetti
+  // Generate random particles/confetti and auto-dismiss
+  /* eslint-disable react-hooks/set-state-in-effect -- Generating random visual data on visibility change is intentional */
   useEffect(() => {
     if (isVisible) {
-      // Emoji particles
-      const newParticles: Particle[] = Array.from({ length: 25 }, (_, i) => ({
+      setParticles(Array.from({ length: 25 }, (_, i) => ({
         id: i,
         emoji: config.particles[Math.floor(Math.random() * config.particles.length)],
         x: Math.random() * 100,
         delay: Math.random() * 0.8,
         scale: 0.8 + Math.random() * 0.8,
         rotation: Math.random() * 360
-      }));
-      setParticles(newParticles);
-
-      // Confetti pieces
-      const newConfetti: Confetti[] = Array.from({ length: 50 }, (_, i) => ({
+      })));
+      setConfetti(Array.from({ length: 50 }, (_, i) => ({
         id: i,
         x: Math.random() * 100,
         color: config.confettiColors[Math.floor(Math.random() * config.confettiColors.length)],
         delay: Math.random() * 0.5,
-        duration: 2 + Math.random() * 1
-      }));
-      setConfetti(newConfetti);
+        duration: 2 + Math.random() * 1,
+        rotation: Math.random() > 0.5 ? 720 : -720
+      })));
 
-      // Auto dismiss after 3 seconds
       const timer = setTimeout(onComplete, 3000);
       return () => clearTimeout(timer);
     }
   }, [isVisible, onComplete, config.particles, config.confettiColors]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
-  // Memoize sparkle positions
-  const sparkles = useMemo(() =>
+  // Stable sparkle positions generated once on mount
+  const [sparkles] = useState(() =>
     Array.from({ length: 20 }, (_, i) => ({
       id: i,
       x: 20 + Math.random() * 60,
       y: 20 + Math.random() * 60,
       delay: Math.random() * 2,
       size: 4 + Math.random() * 8
-    })),
-    []
+    }))
   );
 
   return createPortal(
@@ -129,7 +126,7 @@ export function Celebration({ type, isVisible, onComplete }: CelebrationProps) {
               animate={{
                 opacity: [1, 1, 0],
                 y: '110vh',
-                rotate: Math.random() > 0.5 ? 720 : -720,
+                rotate: piece.rotation,
                 scale: [1, 1, 0.5]
               }}
               transition={{

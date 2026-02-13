@@ -26,19 +26,130 @@ const DEFAULT_STATS: Stats = {
   totalPlays: 0,
 };
 
+// Calculate stats from reminders (pure function)
+function calculateStats(reminderList: Reminder[]): Stats {
+  const completed = reminderList.filter(r => r.isCompleted);
+  const touchdowns = completed.filter(r => r.completionStatus === 'touchdown').length;
+  const fieldGoals = completed.filter(r => r.completionStatus === 'field-goal').length;
+  const turnovers = completed.filter(r => r.completionStatus === 'turnover').length;
+
+  // Calculate current streak (consecutive touchdowns from most recent)
+  const sortedCompleted = [...completed]
+    .filter(r => r.completedAt)
+    .sort((a, b) => parseISO(b.completedAt!).getTime() - parseISO(a.completedAt!).getTime());
+
+  let currentStreak = 0;
+  for (const r of sortedCompleted) {
+    if (r.completionStatus === 'touchdown') {
+      currentStreak++;
+    } else {
+      break;
+    }
+  }
+
+  // Calculate best streak
+  let bestStreak = 0;
+  let tempStreak = 0;
+  const chronological = [...sortedCompleted].reverse();
+  for (const r of chronological) {
+    if (r.completionStatus === 'touchdown') {
+      tempStreak++;
+      bestStreak = Math.max(bestStreak, tempStreak);
+    } else {
+      tempStreak = 0;
+    }
+  }
+
+  return {
+    touchdowns,
+    fieldGoals,
+    turnovers,
+    currentStreak,
+    bestStreak,
+    totalPlays: reminderList.length,
+  };
+}
+
+// Sync local reminders to Firestore
+async function syncLocalToCloud(userId: string, localReminders: Reminder[], localStats: Stats) {
+  if (!db) return;
+
+  try {
+    const batch = writeBatch(db);
+
+    // Add all local reminders to Firestore
+    for (const reminder of localReminders) {
+      const reminderRef = doc(db, COLLECTIONS.USERS, userId, COLLECTIONS.REMINDERS, reminder.id);
+      const sanitizedReminder = Object.fromEntries(
+        Object.entries(reminder).filter(([, value]) => value !== undefined)
+      );
+      batch.set(reminderRef, sanitizedReminder);
+    }
+
+    // Save stats
+    const statsRef = doc(db, COLLECTIONS.USERS, userId);
+    batch.set(statsRef, { stats: localStats }, { merge: true });
+
+    await batch.commit();
+
+    // Clear local storage after successful sync
+    setStoredReminders([]);
+    setStoredStats(DEFAULT_STATS);
+  } catch (error) {
+    console.error('Failed to sync local data to cloud:', error);
+  }
+}
+
 export function ReminderProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
-  const [reminders, setReminders] = useState<Reminder[]>([]);
-  const [stats, setStats] = useState<Stats>(DEFAULT_STATS);
-  const [isLoading, setIsLoading] = useState(true);
+  const [reminders, setReminders] = useState<Reminder[]>(() => user ? [] : getStoredReminders());
+  const [stats, setStats] = useState<Stats>(() => user ? DEFAULT_STATS : getStoredStats());
+  const [isLoading, setIsLoading] = useState(!!(user && db));
   const [hasSyncedLocal, setHasSyncedLocal] = useState(false);
+  const [prevUser, setPrevUser] = useState(user);
+  if (user !== prevUser) {
+    setPrevUser(user);
+    if (user && db) {
+      setIsLoading(true);
+    } else {
+      setReminders(getStoredReminders());
+      setStats(getStoredStats());
+      setIsLoading(false);
+      setHasSyncedLocal(false);
+    }
+  }
+
+  // Save reminder to Firestore
+  const saveReminderToFirestore = useCallback(async (reminder: Reminder) => {
+    if (!user || !db) return;
+
+    try {
+      const reminderRef = doc(db, COLLECTIONS.USERS, user.uid, COLLECTIONS.REMINDERS, reminder.id);
+      const sanitizedReminder = Object.fromEntries(
+        Object.entries(reminder).filter(([, value]) => value !== undefined)
+      );
+      await setDoc(reminderRef, sanitizedReminder);
+    } catch (error) {
+      console.error('Failed to save reminder to Firestore:', error);
+    }
+  }, [user]);
+
+  // Delete reminder from Firestore
+  const deleteReminderFromFirestore = useCallback(async (id: string) => {
+    if (!user || !db) return;
+
+    try {
+      const reminderRef = doc(db, COLLECTIONS.USERS, user.uid, COLLECTIONS.REMINDERS, id);
+      await deleteDoc(reminderRef);
+    } catch (error) {
+      console.error('Failed to delete reminder from Firestore:', error);
+    }
+  }, [user]);
 
   // Load initial data based on auth state
   useEffect(() => {
     if (user && db) {
       // User is logged in - listen to Firestore
-      setIsLoading(true);
-
       const remindersRef = collection(db, COLLECTIONS.USERS, user.uid, COLLECTIONS.REMINDERS);
       const q = query(remindersRef);
 
@@ -61,7 +172,6 @@ export function ReminderProvider({ children }: { children: ReactNode }) {
           } else {
             // Use cloud data
             setReminders(firestoreReminders);
-            // Recalculate stats from reminders
             const calculatedStats = calculateStats(firestoreReminders);
             setStats(calculatedStats);
           }
@@ -82,12 +192,6 @@ export function ReminderProvider({ children }: { children: ReactNode }) {
       });
 
       return () => unsubscribe();
-    } else {
-      // No user - use localStorage
-      setReminders(getStoredReminders());
-      setStats(getStoredStats());
-      setIsLoading(false);
-      setHasSyncedLocal(false);
     }
   }, [user, hasSyncedLocal]);
 
@@ -103,108 +207,6 @@ export function ReminderProvider({ children }: { children: ReactNode }) {
       setStoredStats(stats);
     }
   }, [stats, user]);
-
-  // Calculate stats from reminders
-  const calculateStats = (reminderList: Reminder[]): Stats => {
-    const completed = reminderList.filter(r => r.isCompleted);
-    const touchdowns = completed.filter(r => r.completionStatus === 'touchdown').length;
-    const fieldGoals = completed.filter(r => r.completionStatus === 'field-goal').length;
-    const turnovers = completed.filter(r => r.completionStatus === 'turnover').length;
-
-    // Calculate current streak (consecutive touchdowns from most recent)
-    const sortedCompleted = [...completed]
-      .filter(r => r.completedAt)
-      .sort((a, b) => parseISO(b.completedAt!).getTime() - parseISO(a.completedAt!).getTime());
-
-    let currentStreak = 0;
-    for (const r of sortedCompleted) {
-      if (r.completionStatus === 'touchdown') {
-        currentStreak++;
-      } else {
-        break;
-      }
-    }
-
-    // Calculate best streak
-    let bestStreak = 0;
-    let tempStreak = 0;
-    const chronological = [...sortedCompleted].reverse();
-    for (const r of chronological) {
-      if (r.completionStatus === 'touchdown') {
-        tempStreak++;
-        bestStreak = Math.max(bestStreak, tempStreak);
-      } else {
-        tempStreak = 0;
-      }
-    }
-
-    return {
-      touchdowns,
-      fieldGoals,
-      turnovers,
-      currentStreak,
-      bestStreak,
-      totalPlays: reminderList.length,
-    };
-  };
-
-  // Sync local reminders to Firestore
-  const syncLocalToCloud = async (userId: string, localReminders: Reminder[], localStats: Stats) => {
-    if (!db) return;
-
-    try {
-      const batch = writeBatch(db);
-
-      // Add all local reminders to Firestore
-      for (const reminder of localReminders) {
-        const reminderRef = doc(db, COLLECTIONS.USERS, userId, COLLECTIONS.REMINDERS, reminder.id);
-        const sanitizedReminder = Object.fromEntries(
-          Object.entries(reminder).filter(([, value]) => value !== undefined)
-        );
-        batch.set(reminderRef, sanitizedReminder);
-      }
-
-      // Save stats
-      const statsRef = doc(db, COLLECTIONS.USERS, userId);
-      batch.set(statsRef, { stats: localStats }, { merge: true });
-
-      await batch.commit();
-
-      // Clear local storage after successful sync
-      setStoredReminders([]);
-      setStoredStats(DEFAULT_STATS);
-    } catch (error) {
-      console.error('Failed to sync local data to cloud:', error);
-    }
-  };
-
-  // Save reminder to Firestore
-  const saveReminderToFirestore = async (reminder: Reminder) => {
-    if (!user || !db) return;
-
-    try {
-      const reminderRef = doc(db, COLLECTIONS.USERS, user.uid, COLLECTIONS.REMINDERS, reminder.id);
-      // Remove undefined values - Firestore doesn't accept them
-      const sanitizedReminder = Object.fromEntries(
-        Object.entries(reminder).filter(([, value]) => value !== undefined)
-      );
-      await setDoc(reminderRef, sanitizedReminder);
-    } catch (error) {
-      console.error('Failed to save reminder to Firestore:', error);
-    }
-  };
-
-  // Delete reminder from Firestore
-  const deleteReminderFromFirestore = async (id: string) => {
-    if (!user || !db) return;
-
-    try {
-      const reminderRef = doc(db, COLLECTIONS.USERS, user.uid, COLLECTIONS.REMINDERS, id);
-      await deleteDoc(reminderRef);
-    } catch (error) {
-      console.error('Failed to delete reminder from Firestore:', error);
-    }
-  };
 
   // Check for overdue reminders periodically
   useEffect(() => {
@@ -240,7 +242,7 @@ export function ReminderProvider({ children }: { children: ReactNode }) {
     checkOverdue();
     const interval = setInterval(checkOverdue, 60000);
     return () => clearInterval(interval);
-  }, [user]);
+  }, [user, saveReminderToFirestore]);
 
   const addReminder = useCallback((reminderData: Omit<Reminder, 'id' | 'createdAt' | 'isCompleted'>) => {
     const newReminder: Reminder = {
@@ -251,18 +253,15 @@ export function ReminderProvider({ children }: { children: ReactNode }) {
     };
 
     if (user && db) {
-      // Save to Firestore (will update local state via subscription)
       saveReminderToFirestore(newReminder);
     } else {
-      // Local only
       setReminders(prev => [...prev, newReminder]);
       setStats(s => ({ ...s, totalPlays: s.totalPlays + 1 }));
     }
-  }, [user]);
+  }, [user, saveReminderToFirestore]);
 
   const updateReminder = useCallback((id: string, updates: Partial<Reminder>) => {
     if (user && db) {
-      // Find the reminder and update in Firestore
       const reminder = reminders.find(r => r.id === id);
       if (reminder) {
         saveReminderToFirestore({ ...reminder, ...updates });
@@ -270,7 +269,7 @@ export function ReminderProvider({ children }: { children: ReactNode }) {
     } else {
       setReminders(prev => prev.map(r => r.id === id ? { ...r, ...updates } : r));
     }
-  }, [user, reminders]);
+  }, [user, reminders, saveReminderToFirestore]);
 
   const deleteReminder = useCallback((id: string) => {
     if (user && db) {
@@ -278,7 +277,7 @@ export function ReminderProvider({ children }: { children: ReactNode }) {
     } else {
       setReminders(prev => prev.filter(r => r.id !== id));
     }
-  }, [user]);
+  }, [user, deleteReminderFromFirestore]);
 
   const completeReminder = useCallback((id: string) => {
     const now = new Date();
@@ -298,10 +297,8 @@ export function ReminderProvider({ children }: { children: ReactNode }) {
     };
 
     if (user && db) {
-      // Save to Firestore (will update local state via subscription)
       saveReminderToFirestore(updatedReminder);
     } else {
-      // Local only
       setReminders(prev => prev.map(r => r.id === id ? updatedReminder : r));
 
       setStats(s => {
@@ -315,7 +312,7 @@ export function ReminderProvider({ children }: { children: ReactNode }) {
         };
       });
     }
-  }, [reminders, user]);
+  }, [reminders, user, saveReminderToFirestore]);
 
   const getUpcomingReminders = useCallback(() => {
     return reminders
@@ -366,6 +363,7 @@ export function ReminderProvider({ children }: { children: ReactNode }) {
   );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useReminders() {
   const context = useContext(ReminderContext);
   if (!context) {

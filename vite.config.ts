@@ -50,7 +50,6 @@ export default defineConfig({
           'vendor-firebase': ['firebase/app', 'firebase/auth', 'firebase/firestore'],
           'vendor-motion': ['framer-motion'],
           'vendor-date': ['date-fns'],
-          'vendor-ocr': ['tesseract.js'],
         }
       }
     }

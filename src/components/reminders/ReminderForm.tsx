@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { format, addHours, parseISO } from 'date-fns';
 import { Button } from '../common';
 import { PRIORITY_CONFIG, CATEGORY_CONFIG, type Reminder, type Priority, type Category } from '../../lib/types';
@@ -11,16 +11,23 @@ interface ReminderFormProps {
 }
 
 export function ReminderForm({ reminder, onSubmit, onCancel }: ReminderFormProps) {
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [deadline, setDeadline] = useState('');
-  const [priority, setPriority] = useState<Priority>('first-down');
-  const [category, setCategory] = useState<Category>('personal');
-  const [notifyBefore, setNotifyBefore] = useState<number | undefined>(30);
+  const [title, setTitle] = useState(() => reminder?.title ?? '');
+  const [description, setDescription] = useState(() => reminder?.description ?? '');
+  const [deadline, setDeadline] = useState(() => {
+    if (reminder) return format(parseISO(reminder.deadline), "yyyy-MM-dd'T'HH:mm");
+    const defaultDeadline = addHours(new Date(), 24);
+    defaultDeadline.setMinutes(0);
+    return format(defaultDeadline, "yyyy-MM-dd'T'HH:mm");
+  });
+  const [priority, setPriority] = useState<Priority>(() => reminder?.priority ?? 'first-down');
+  const [category, setCategory] = useState<Category>(() => reminder?.category ?? 'personal');
+  const [notifyBefore, setNotifyBefore] = useState<number | undefined>(() => reminder?.notifyBefore ?? 30);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Initialize form with existing reminder data
-  useEffect(() => {
+  // Reset form when switching between create/edit
+  const [prevReminder, setPrevReminder] = useState(reminder);
+  if (reminder !== prevReminder) {
+    setPrevReminder(reminder);
     if (reminder) {
       setTitle(reminder.title);
       setDescription(reminder.description || '');
@@ -29,12 +36,16 @@ export function ReminderForm({ reminder, onSubmit, onCancel }: ReminderFormProps
       setCategory(reminder.category);
       setNotifyBefore(reminder.notifyBefore);
     } else {
-      // Default to tomorrow at 5pm
+      setTitle('');
+      setDescription('');
       const defaultDeadline = addHours(new Date(), 24);
       defaultDeadline.setMinutes(0);
       setDeadline(format(defaultDeadline, "yyyy-MM-dd'T'HH:mm"));
+      setPriority('first-down');
+      setCategory('personal');
+      setNotifyBefore(30);
     }
-  }, [reminder]);
+  }
 
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};

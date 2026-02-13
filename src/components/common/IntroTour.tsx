@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createPortal } from 'react-dom';
 
@@ -69,15 +69,15 @@ const tourSteps: TourStep[] = [
 
 export function IntroTour({ isVisible, onComplete }: IntroTourProps) {
   const [currentStep, setCurrentStep] = useState(0);
+  const [prevIsVisible, setPrevIsVisible] = useState(isVisible);
+  if (isVisible && !prevIsVisible) {
+    setCurrentStep(0);
+  }
+  if (isVisible !== prevIsVisible) {
+    setPrevIsVisible(isVisible);
+  }
   const step = tourSteps[currentStep];
   const isLastStep = currentStep === tourSteps.length - 1;
-
-  // Reset step when tour opens
-  useEffect(() => {
-    if (isVisible) {
-      setCurrentStep(0);
-    }
-  }, [isVisible]);
 
   const handleNext = () => {
     if (isLastStep) {
@@ -231,38 +231,4 @@ export function IntroTour({ isVisible, onComplete }: IntroTourProps) {
     </AnimatePresence>,
     document.body
   );
-}
-
-// Hook to manage tour state with localStorage
-const TOUR_COMPLETED_KEY = 'gameday-tour-completed';
-
-export function useIntroTour() {
-  const [showTour, setShowTour] = useState(false);
-  const [hasSeenTour, setHasSeenTour] = useState(true); // Default to true to prevent flash
-
-  useEffect(() => {
-    // Check localStorage on mount
-    const completed = localStorage.getItem(TOUR_COMPLETED_KEY);
-    if (!completed) {
-      setShowTour(true);
-      setHasSeenTour(false);
-    }
-  }, []);
-
-  const completeTour = () => {
-    setShowTour(false);
-    setHasSeenTour(true);
-    localStorage.setItem(TOUR_COMPLETED_KEY, 'true');
-  };
-
-  const openTour = () => {
-    setShowTour(true);
-  };
-
-  return {
-    showTour,
-    hasSeenTour,
-    completeTour,
-    openTour
-  };
 }
